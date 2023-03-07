@@ -14,6 +14,27 @@ from homeassistant.const import (
 	VOLUME_CUBIC_METERS,
 	TEMP_CELSIUS,
 )
+#counters_mac = {
+#	gas: [
+#		'b0:10:01',
+#		'b0:11:01',
+#		'b0:12:01',
+#		'b0:32:01',
+#		'b0:42:01'
+#	],
+#	water: [
+#		'b0:01:02',
+#		'b0:02:02'
+#	],
+#	water2: [
+#		'b0:03:02',
+#		'b0:05:02'
+#	],
+#	water3: [
+#		'b0:04:02',
+#		'b0:06:02'
+#	],
+#}
 
 _LOGGER = logging.getLogger("elehant_water")
 inf = {}
@@ -21,14 +42,14 @@ _LOGGER.debug("init")
 
 
 def stop_loop(loop):
-	_LOGGER.debug("Entering function stop_loop()..")
+	#_LOGGER.debug("Entering function stop_loop()..")
 	loop.stop()
-	_LOGGER.debug("Exiting function stop_loop()..")
+	#_LOGGER.debug("Exiting function stop_loop()..")
 
 def update_counters(call):
 	global scan_duration, current_event_loop
 	# _LOGGER.setLevel(logging.DEBUG)
-	_LOGGER.debug("scan_duration = %s, current_event_loop = %s", str(scan_duration), str(current_event_loop))
+	#_LOGGER.debug("scan_duration = %s, current_event_loop = %s", str(scan_duration), str(current_event_loop))
 
 	def my_process(data):
 		# _LOGGER.debug("Entering function <my_process> with arg = %s", str(data))
@@ -39,15 +60,18 @@ def update_counters(call):
 		except:
 			return
 
+		mac = str(mac).lower()
+
 		# _LOGGER.debug("Found MAC = %s", str(mac))
 		"""СГБТ-1.8, СГБТ-3.2, СГБТ-4.0, СГБТ-4.0 ТК, СОНИК G4ТК"""
 		if (str(mac).find('b0:10:01') !=-1) or (str(mac).find('b0:11:01') !=-1) or (str(mac).find('b0:12:01') !=-1) or (str(mac).find('b0:32:01') !=-1) or (str(mac).find('b0:42:01') !=-1):
-			_LOGGER.debug("SEE gaz counter")
+			#_LOGGER.debug("SEE gaz counter")
 			manufacturer_data = ev.retrieve("Manufacturer Specific Data")
 			payload = manufacturer_data[0].payload
 			payload = payload[1].val
+			_LOGGER.debug("Payload: %s", payload)
 			c_num = int.from_bytes(payload[6:9], byteorder='little')
-			c_count = int.from_bytes(payload[9:12], byteorder='little')
+			c_count = int.from_bytes(payload[9:13], byteorder='little')
 			if measurement_gas == 'm3':
 				inf[c_num] = c_count/10000
 			else:
@@ -55,12 +79,15 @@ def update_counters(call):
 
 		"""СВД-15, СВД-20"""
 		if (str(mac).find('b0:01:02') !=-1) or (str(mac).find('b0:02:02') !=-1):
-			_LOGGER.debug("SEE 1 tariff counter")
+			#_LOGGER.debug("SEE 1 tariff counter")
 			manufacturer_data = ev.retrieve("Manufacturer Specific Data")
 			payload = manufacturer_data[0].payload
 			payload = payload[1].val
 			c_num = int.from_bytes(payload[6:9], byteorder="little")
-			c_count = int.from_bytes(payload[9:12], byteorder="little")
+			c_count = int.from_bytes(payload[9:13], byteorder="little")
+			c_temp = int.from_bytes(payload[14:16], byteorder="little") / 100
+			inf[str(c_num) + '_temp'] = c_temp;
+			#_LOGGER.debug("Test temperature: %s", str(c_temp))
 			if measurement_water == "m3":
 				inf[c_num] = c_count / 10000
 			else:
@@ -68,7 +95,7 @@ def update_counters(call):
 
 		"""СВТ-15 холодная, СВТ-15 горячая, СВТ-20 холодная, СВТ-20 горячая"""
 		if (str(mac).find('b0:03:02') !=-1) or (str(mac).find('b0:04:02') !=-1) or (str(mac).find('b0:05:02') !=-1) or (str(mac).find('b0:06:02') !=-1):
-			_LOGGER.debug("SEE 2 tariff counter")
+			#_LOGGER.debug("SEE 2 tariff counter")
 			manufacturer_data = ev.retrieve("Manufacturer Specific Data")
 			payload = manufacturer_data[0].payload
 			payload = payload[1].val
@@ -77,16 +104,17 @@ def update_counters(call):
 				c_num = str(c_num) + "_1"
 			else:
 				c_num = str(c_num) + "_2"
-			c_count = int.from_bytes(payload[9:12], byteorder="little")
+			c_count = int.from_bytes(payload[9:13], byteorder="little")
 			c_temp = int.from_bytes(payload[14:16], byteorder="little") / 100
-			inf[c_num.split("_")[0]] = c_temp
+			inf[c_num.split("_")[0] + '_temp'] = c_temp
 			if measurement_water == "m3":
 				inf[c_num] = c_count / 10000
 			else:
 				inf[c_num] = c_count / 10
+		#_LOGGER.debug(inf)
 
 	if current_event_loop is None:
-		_LOGGER.debug("Starting new loop..")
+		#_LOGGER.debug("Starting new loop..")
 		current_event_loop = asyncio.new_event_loop()
 		asyncio.set_event_loop(current_event_loop)
 	mysocket = aiobs.create_bt_socket(0)
@@ -95,16 +123,16 @@ def update_counters(call):
 	)
 	conn, btctrl = current_event_loop.run_until_complete(fac)
 	btctrl.process = my_process
-	_LOGGER.debug("Send scan request..")
+	#_LOGGER.debug("Send scan request..")
 	current_event_loop.run_until_complete(btctrl.send_scan_request())
-	_LOGGER.debug("..finish scan request")
+	#_LOGGER.debug("..finish scan request")
 	current_event_loop.call_later(scan_duration, stop_loop, current_event_loop)
 	try:
-		_LOGGER.debug("Run loop forever..")
+		#_LOGGER.debug("Run loop forever..")
 		current_event_loop.run_forever()
-		_LOGGER.debug("Did we reach that point?")
+		#_LOGGER.debug("Did we reach that point?")
 	finally:
-		_LOGGER.debug("Close loop..")
+		#_LOGGER.debug("Close loop..")
 		# current_event_loop(btctrl.stop_scan_request())
 		current_event_loop.run_until_complete(btctrl.stop_scan_request())
 		conn.close()
@@ -123,24 +151,25 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 	measurement_gas = config.get("measurement_gas")
 	for device in config["devices"]:
 		if device["type"] == "gas":
-			ha_entities.append(GasSensor(device["id"], device["name"]))
 			inf[device["id"]] = STATE_UNKNOWN
+			ha_entities.append(GasSensor(device["id"], device["name"]))
 		else:
+			inf[device["id"]] = STATE_UNKNOWN
 			if "_1" in str(device["id"]):
+				temp_id = device["id"].split("_")[0]
+				inf[temp_id + '_temp'] = STATE_UNKNOWN
+				ha_entities.append(WaterTempSensor(temp_id, device["name_temp"]))
 				ha_entities.append(WaterSensorCold(device["id"], device["name"]))
-				ha_entities.append(
-					WaterTempSensor(device["id"].split("_")[0], device["name_temp"])
-				)
-				inf[device["id"].split("_")[0]] = STATE_UNKNOWN
 			elif "_2" in str(device["id"]):
 				ha_entities.append(WaterSensorHot(device["id"], device["name"]))
 			else:
+				inf[str(device["id"]) + '_temp'] = STATE_UNKNOWN
+				ha_entities.append(WaterTempSensor(device["id"], device["name_temp"]))
 				if device["water_type"] == "hot":
 					ha_entities.append(WaterSensorHot(device["id"], device["name"]))
 				else:
 					ha_entities.append(WaterSensorCold(device["id"], device["name"]))
 
-			inf[device["id"]] = STATE_UNKNOWN
 
 	add_entities(ha_entities, True)
 	track_time_interval(hass, update_counters, scan_interval)
@@ -194,7 +223,7 @@ class WaterTempSensor(SensorEntity):
 		This is the only method that should fetch new data for Home Assistant.
 		"""
 		# update_counters()
-		self._state = inf[self._num]
+		self._state = inf[str(self._num) + '_temp']
 
 
 class WaterSensorCold(SensorEntity):
