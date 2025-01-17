@@ -8,12 +8,13 @@ from homeassistant.helpers.event import track_time_interval
 from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 import random
 import logging
-from homeassistant.const import (
-	VOLUME_LITERS,
-	STATE_UNKNOWN,
-	VOLUME_CUBIC_METERS,
-	TEMP_CELSIUS,
-)
+#from homeassistant.const import (
+#	VOLUME_LITERS,
+#	STATE_UNKNOWN,
+#	VOLUME_CUBIC_METERS,
+#	TEMP_CELSIUS,
+#)
+from homeassistant.const import STATE_UNKNOWN, UnitOfVolume, UnitOfTemperature
 #counters_mac = {
 #	gas: [
 #		'b0:10:01',
@@ -198,7 +199,7 @@ class WaterTempSensor(SensorEntity):
 	@property
 	def unit_of_measurement(self):
 		"""Return the unit of measurement."""
-		return TEMP_CELSIUS
+		return  UnitOfTemperature.CELSIUS
 
 	@property
 	def device_class(self):
@@ -250,9 +251,9 @@ class WaterSensorCold(SensorEntity):
 	def unit_of_measurement(self):
 		"""Return the unit of measurement."""
 		if measurement_water == "m3":
-			return VOLUME_CUBIC_METERS
+			return UnitOfVolume.CUBIC_METERS
 		else:
-			return VOLUME_LITERS
+			return UnitOfVolume.LITERS
 
 	@property
 	def device_class(self):
@@ -304,9 +305,9 @@ class WaterSensorHot(SensorEntity):
 	def unit_of_measurement(self):
 		"""Return the unit of measurement."""
 		if measurement_water == "m3":
-			return VOLUME_CUBIC_METERS
+			return UnitOfVolume.CUBIC_METERS
 		else:
-			return VOLUME_LITERS
+			return UnitOfVolume.LITERS
 
 	@property
 	def device_class(self):
@@ -358,9 +359,9 @@ class GasSensor(SensorEntity):
 	def unit_of_measurement(self):
 		"""Return the unit of measurement."""
 		if measurement_gas == "m3":
-			return VOLUME_CUBIC_METERS
+			return UnitOfVolume.CUBIC_METERS
 		else:
-			return VOLUME_LITERS
+			return UnitOfVolume.LITERS
 
 	@property
 	def device_class(self):
