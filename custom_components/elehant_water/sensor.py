@@ -100,7 +100,7 @@ def update_counters(call):
 			manufacturer_data = ev.retrieve("Manufacturer Specific Data")
 			payload = manufacturer_data[0].payload
 			payload = payload[1].val
-			_LOGGER.debug("SEE 2 tariff counter: %s", payload)
+			_LOGGER.info("SEE 2 tariff counter: %s", payload)
 			c_num = int.from_bytes(payload[6:9], byteorder="little")
 			if (str(mac).find('b0:03:02') !=-1) or (str(mac).find('b0:05:02') !=-1):
 				c_num = str(c_num) + "_1"
